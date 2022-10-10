@@ -1,61 +1,62 @@
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from seleniumwire import webdriver
 
 import re
 from time import sleep
 import requests
 import json
 
+from utils.BaseApp import BasePage
 
-class Binance:
-    def __init__(self, email, password, proxy):
-        self.email = email
-        self.password = password
-        self.options = webdriver.ChromeOptions()
-        self.options.add_experimental_option('excludeSwitches', ['enable-automation', 'enable-logging'])
-        self.options_wire = {'proxy': {'https': proxy}}
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options,
-                                       seleniumwire_options=self.options_wire)
 
-    def auth(self):
-        url = 'https://accounts.binance.com/ru/login'
-        driver = self.driver
-        driver.get(url)
-        driver.implicitly_wait(20)
-        sleep(5)
-        email_field = driver.find_element(By.NAME, "email")
-        email_field.send_keys(self.email)
+class BinanceAuthLocators:
+    LOCATOR_BINANCE_EMAIL_FIELD = (By.NAME, "username")
+    LOCATOR_BINANCE_PASSWORD_FIELD = (By.NAME, "password")
+    LOCATOR_BINANCE_SUBMIT_BUTTON = (By.ID, "click_login_submit")
+    LOCATOR_BINANCE_2FA_FIELD = (By.XPATH, ".//*[@class='bn-input-suffix css-vurnku']/div[@data-bn-type='text']")
+    LOCATOR_BINANCE_2FA_PHONE_FIELD = (By.CSS_SELECTOR, "[aria-label='Phone Number Verification Code']")
+    LOCATOR_BINANCE_2FA_EMAIL_FIELD = (By.CSS_SELECTOR, "[aria-label='Email Verification Code']")
+    LOCATOR_BINANCE_2FA_SUBMIT_BUTTON = (By.XPATH, ".//div[@class='bn-2fa-submit css-vurnku']/button")
 
-        password_field = driver.find_element(By.NAME, "password")
-        password_field.send_keys(self.password)
 
+class Binance(BasePage):
+    def enter_email(self, EMAIL):
+        email_field = self.find_element(BinanceAuthLocators.LOCATOR_BINANCE_EMAIL_FIELD)
+        email_field.send_keys(EMAIL)
+
+    def enter_password(self, PASSWORD):
+        password_field = self.find_element(BinanceAuthLocators.LOCATOR_BINANCE_PASSWORD_FIELD)
+        password_field.send_keys(PASSWORD)
         password_field.send_keys(Keys.RETURN)
-        input('Капча введена, страница с вводом кода открыта? [ENTER]')
-        get_2fa = driver.find_elements(By.XPATH, ".//*[@class='bn-input-suffix css-vurnku']/div")
+
+    def click_submit(self):
+        self.find_element(BinanceAuthLocators.LOCATOR_BINANCE_SUBMIT_BUTTON).click()
+
+    def wait_load_page(self, url):
+        self.check_url(url)
+
+    def click_2fa(self):
+        get_2fa = self.find_elements(BinanceAuthLocators.LOCATOR_BINANCE_2FA_FIELD)
         for item in get_2fa:
             item.click()
 
-        if driver.find_elements(By.CSS_SELECTOR, "[aria-label='Код верификации (на телефон)']"):
-            phone_2fa = driver.find_element(By.CSS_SELECTOR, "[aria-label='Код верификации (на телефон)']")
+    def enter_2fa_phone(self):
+        if self.find_elements(BinanceAuthLocators.LOCATOR_BINANCE_2FA_PHONE_FIELD):
+            phone_2fa = self.find_element(BinanceAuthLocators.LOCATOR_BINANCE_2FA_PHONE_FIELD)
             code_phone = input('Введите код с телефона [123456]: ')
             phone_2fa.send_keys(code_phone)
 
-        if driver.find_elements(By.CSS_SELECTOR, "[aria-label='Код верификации (на эл. почту)']"):
-            email_2fa = driver.find_element(By.CSS_SELECTOR, "[aria-label='Код верификации (на эл. почту)']")
+    def enter_2fa_email(self):
+        if self.find_elements(BinanceAuthLocators.LOCATOR_BINANCE_2FA_EMAIL_FIELD):
+            email_2fa = self.find_element(BinanceAuthLocators.LOCATOR_BINANCE_2FA_EMAIL_FIELD)
             code_email = input('Введите код с почты [123456]: ')
             email_2fa.send_keys(code_email)
 
-        return self._get_tokens_auth()
+    def click_2fa_submit(self):
+        self.find_element(BinanceAuthLocators.LOCATOR_BINANCE_2FA_SUBMIT_BUTTON).click()
 
-    def _get_tokens_auth(self):
-        url = 'https://binance.com/ru'
-        driver = self.driver
-        driver.get(url)
-
-        for request in driver.requests:
+    def get_tokens_auth_request(self):
+        for request in self.driver.requests:
             if request.url == 'https://www.binance.com/bapi/accounts/v1/public/authcenter/auth':
                 if request.response.status_code == 200:
                     print(request.response.headers.get('date'))
@@ -66,11 +67,8 @@ class Binance:
                     return dict(csrf_token=csrf_token, p20t_token=p20t_token, status=True)
                 else:
                     print(request.response.status_code)
-        del driver.requests
+        del self.driver.requests
         return dict(status=False)
-
-    def tear_down(self):
-        self.driver.close()
 
     @staticmethod
     def _create_request(tokens):
@@ -84,7 +82,7 @@ class Binance:
                    }
         return url, headers
 
-    def get_name(self, tokens, proxy):
+    def get_first_name_request(self, tokens, proxy):
         url, headers = self._create_request(tokens)
         for i in range(5):
             auth_response = requests.post(url=url, headers=headers, proxies={'http': proxy})
