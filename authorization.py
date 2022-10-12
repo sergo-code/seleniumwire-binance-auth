@@ -4,7 +4,7 @@ from utils import show_data, change_env_config
 
 
 def binance_auth(browser):
-    binance_auth_page = Binance(browser)
+    binance_auth_page = Binance(next(browser))
     binance_auth_page.go_to_site('https://accounts.binance.com/en/login')
     binance_auth_page.enter_email(email())
     binance_auth_page.click_submit()
@@ -25,6 +25,7 @@ def binance_auth(browser):
         data = binance_auth_page.get_first_name_request(tokens)
     show_data(data, tokens)
     change_env_config(tokens)
+    next(browser)
 
 
 if __name__ == '__main__':

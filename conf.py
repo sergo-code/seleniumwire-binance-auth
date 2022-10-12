@@ -27,7 +27,8 @@ def browser():
         options_wire = {'proxy': {'https': proxy()}}
         driver = webdriver.Chrome(executable_path="./chromedriver.exe", options=options,
                                   seleniumwire_options=options_wire)
-        return driver
+        yield driver
     else:
         driver = webdriver.Chrome(executable_path="./chromedriver.exe", options=options)
-        return driver
+        yield driver
+    yield driver.quit()
