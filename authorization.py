@@ -18,7 +18,11 @@ def binance_auth(browser):
     binance_auth_page.wait_load_page('https://www.binance.com/en/my/dashboard')
     binance_auth_page.go_to_site('https://binance.com/en')
     tokens = binance_auth_page.get_tokens_auth_request()
-    data = binance_auth_page.get_first_name_request(tokens, proxy())
+    proxies = proxy()
+    if proxies != 'None':
+        data = binance_auth_page.get_first_name_request(tokens, {'http': proxies})
+    else:
+        data = binance_auth_page.get_first_name_request(tokens)
     show_data(data, tokens)
     change_env_config(tokens)
 

@@ -82,10 +82,10 @@ class Binance(BasePage):
                    }
         return url, headers
 
-    def get_first_name_request(self, tokens, proxy):
+    def get_first_name_request(self, tokens, proxies=None):
         url, headers = self._create_request(tokens)
         for i in range(5):
-            auth_response = requests.post(url=url, headers=headers, proxies={'http': proxy})
+            auth_response = requests.post(url=url, headers=headers, proxies=proxies)
             if auth_response:
                 if json.loads(auth_response.text)["success"]:
                     first_name = json.loads(auth_response.text)["data"]["firstName"]

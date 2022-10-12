@@ -22,6 +22,12 @@ def password():
 def browser():
     options = webdriver.ChromeOptions()
     options.add_experimental_option('excludeSwitches', ['enable-automation', 'enable-logging'])
-    options_wire = {'proxy': {'https': proxy()}}
-    driver = webdriver.Chrome(executable_path="./chromedriver", options=options, seleniumwire_options=options_wire)
-    return driver
+    proxies = proxy()
+    if proxies != 'None':
+        options_wire = {'proxy': {'https': proxy()}}
+        driver = webdriver.Chrome(executable_path="./chromedriver.exe", options=options,
+                                  seleniumwire_options=options_wire)
+        return driver
+    else:
+        driver = webdriver.Chrome(executable_path="./chromedriver.exe", options=options)
+        return driver
